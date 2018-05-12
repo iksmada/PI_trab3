@@ -6,7 +6,7 @@ import numpy as np
 modes = ("projection", "hough")
 parser = argparse.ArgumentParser(description='Fix tilted images')
 parser.add_argument('-i', '--input', type=str, help='input image', required=True)
-parser.add_argument('-o', '--output', type=str, help='Output image name', required=True)
+parser.add_argument('-o', '--output', type=str, help='Output image name')
 parser.add_argument('-m', '--mode', type=str, help='Technique for alignment algorithm',
                     default='projection', choices=modes)
 
@@ -16,7 +16,7 @@ INPUT = args["input"]
 OUTPUT = args["output"]
 MODE = args["mode"]
 
-if not OUTPUT.endswith(".png"):
+if OUTPUT and not OUTPUT.endswith(".png"):
     OUTPUT = OUTPUT + ".png"
 
 img_orig = cv2.imread(INPUT)
@@ -26,10 +26,11 @@ cv2.imshow("Greyscale", img_greyscale)
 ret, img_bin = cv2.threshold(img_greyscale, thresh=220, maxval=1, type=cv2.THRESH_BINARY_INV)
 cv2.imshow("Binary", img_bin*255)
 cv2.waitKey(10000)
+cv2.destroyAllWindows()
 
 
 def func_objetivo(hist):
-    pass
+    return max(hist)
 
 
 def projection(img):
@@ -39,16 +40,16 @@ def projection(img):
         hists.append(np.sum(rotated, 1))
 
     max = 0
-    idx = -91
-    i = 0
+    angle = -91
+    i = -90
     for hist in hists:
         value = func_objetivo(hist)
         if value > max:
             max = value
-            idx = i
-        i = i +1
+            angle = i
+        i = i + 1
         
-    return idx
+    return angle
 
 
 def hough(img):
@@ -62,5 +63,10 @@ elif MODE == modes[1]:  # hough
     angle = hough(img_greyscale)
 
 print("Angulo de inclinação no sentido anti-horário: %d" % angle)
+rotated = imutils.rotate_bound(img_greyscale, angle)
+cv2.imshow("Rotated", rotated)
+if OUTPUT:
+    cv2.imwrite(OUTPUT, rotated)
+cv2.waitKey(0)
 
 
