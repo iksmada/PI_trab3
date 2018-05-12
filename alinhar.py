@@ -3,6 +3,34 @@ import cv2
 import imutils
 import numpy as np
 
+
+def func_objetivo(hist):
+    return max(hist)
+
+
+def projection(img):
+    hists = []
+    for angle in np.arange(-90, 90, 1):
+        rotated = imutils.rotate_bound(img, angle)
+        hists.append(np.sum(rotated, 1))
+
+    max = 0
+    angle = -91
+    i = -90
+    for hist in hists:
+        value = func_objetivo(hist)
+        if value > max:
+            max = value
+            angle = i
+        i = i + 1
+
+    return angle
+
+
+def hough(img):
+    return 0
+
+
 modes = ("projection", "hough")
 parser = argparse.ArgumentParser(description='Fix tilted images')
 parser.add_argument('-i', '--input', type=str, help='input image', required=True)
@@ -29,41 +57,17 @@ cv2.waitKey(10000)
 cv2.destroyAllWindows()
 
 
-def func_objetivo(hist):
-    return max(hist)
-
-
-def projection(img):
-    hists = []
-    for angle in np.arange(-90, 90, 1):
-        rotated = imutils.rotate_bound(img, angle)
-        hists.append(np.sum(rotated, 1))
-
-    max = 0
-    angle = -91
-    i = -90
-    for hist in hists:
-        value = func_objetivo(hist)
-        if value > max:
-            max = value
-            angle = i
-        i = i + 1
-        
-    return angle
-
-
-def hough(img):
-    return 0
-
-
 angle = 361
 if MODE == modes[0]:  # projection
     angle = projection(img_bin)
 elif MODE == modes[1]:  # hough
     angle = hough(img_greyscale)
 
-print("Angulo de inclinação no sentido anti-horário: %d" % angle)
-rotated = imutils.rotate_bound(img_greyscale, angle)
+if angle >= 0:
+    print("Inclinação de %d° no sentido anti-horário" % angle)
+else:
+    print("Inclinação de %d° no sentido horário" % (-angle))
+rotated = imutils.rotate(img_greyscale, -angle)
 cv2.imshow("Rotated", rotated)
 if OUTPUT:
     cv2.imwrite(OUTPUT, rotated)
