@@ -4,27 +4,27 @@ import imutils
 import numpy as np
 
 
-def func_objetivo(hist):
+def func_objetivo_projection(hist):
     return max(hist)
 
 
 def projection(img):
     hists = []
-    for angle in np.arange(-90, 90, 1):
-        rotated = imutils.rotate_bound(img, angle)
+    for theta in np.arange(-90, 90, 1):
+        rotated = imutils.rotate_bound(img, theta)
         hists.append(np.sum(rotated, 1))
 
     max = 0
-    angle = -91
+    theta = -91
     i = -90
     for hist in hists:
-        value = func_objetivo(hist)
+        value = func_objetivo_projection(hist)
         if value > max:
             max = value
-            angle = i
+            theta = i
         i = i + 1
 
-    return angle
+    return theta
 
 
 def hough_transform(x, y):
