@@ -27,7 +27,22 @@ def projection(img):
     return angle
 
 
+def hough_transform(x, y):
+    points = []
+    for theta in range(180):
+        points.append((int(x*np.cos(theta) + y*np.sin(theta)), theta))
+    return points
+
+
 def hough(img):
+    accumulator = np.zeros((int(img.shape[0]*1.415 + img.shape[1]*1.415), 180), int)
+    for y in range(img.shape[0]):
+        for x in range(img.shape[1]):
+            if img[y, x] > 0:
+                for point in hough_transform(x, y):
+                    accumulator[point] = accumulator[point] + 1
+
+
     return 0
 
 
@@ -61,7 +76,7 @@ angle = 361
 if MODE == modes[0]:  # projection
     angle = projection(img_bin)
 elif MODE == modes[1]:  # hough
-    angle = hough(img_greyscale)
+    angle = hough(img_bin)
 
 if angle >= 0:
     print("Inclinação de %d° no sentido anti-horário" % angle)
