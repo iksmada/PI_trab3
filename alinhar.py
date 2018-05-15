@@ -2,6 +2,7 @@ import argparse
 import cv2
 import imutils
 import numpy as np
+import pytesseract
 
 
 def centered_crop(img, new_height, new_width):
@@ -64,19 +65,35 @@ def hough(img):
     return angle
 
 
+def extract_contours(img):
+    image, contours, hierarchy = cv2.findContours(img, 1, 2)
+    total_area = img.shape[0]*img.shape[1]
+    img_ret = img
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area > total_area/2:
+            stencil0 = np.zeros(img.shape).astype(img.dtype)
+            cv2.fillConvexPoly(stencil0, cnt, 255)
+            img_ret = cv2.bitwise_and(img_ret, stencil0)
+        elif area > 1000:
+            stencil255 = np.ones(img.shape).astype(img.dtype) * 255
+            cv2.fillConvexPoly(stencil255, cnt, 0)
+            img_ret = cv2.bitwise_and(img_ret, stencil255)
+
+    return img_ret
+
+
 modes = ("projection", "hough")
-pre = ("sobel", "otsu", "none")
+pre = ("crop", "sobel", "otsu", "contours", "gray")
 parser = argparse.ArgumentParser(description='Fix tilted images')
 parser.add_argument('-i', '--input', type=str, help='input image', required=True)
 parser.add_argument('-o', '--output', type=str, help='Output image name')
 parser.add_argument('-m', '--mode', type=str, help='Technique for alignment algorithm',
                     default='projection', choices=modes)
-parser.add_argument('-p', '--pre', type=str, help='Technique for preprocessing',
-                    default='none', choices=pre)
-parser.add_argument('-c', '--crop', type=int, help='Crop image')
+parser.add_argument('-p', '--pre', type=str, help='Technique for preprocessing',default='gray', choices=pre, nargs="*")
+parser.add_argument('-c', '--crop', type=int, help='Crop window size', default=500)
 
 args = vars(parser.parse_args())
-print(args)
 INPUT = args["input"]
 OUTPUT = args["output"]
 MODE = args["mode"]
@@ -89,69 +106,42 @@ if OUTPUT and not OUTPUT.endswith(".png"):
 img_orig = cv2.imread(INPUT)
 cv2.imshow("Original", img_orig)
 
-if CROP and (img_orig.shape[0] > CROP or img_orig.shape[1] > CROP):
-        img_cropped = centered_crop(img_orig, CROP, CROP)
-        cv2.imshow("Cropped", img_cropped)
-else:
-    img_cropped = img_orig
+img_out = img_orig
 
-if PRE == pre[0]:  # sobel
+if pre[0] in PRE and (img_orig.shape[0] > CROP or img_orig.shape[1] > CROP):
+        img_out = centered_crop(img_out, CROP, CROP)
+        cv2.imshow("Cropped", img_out)
+
+if pre[1] in PRE:  # sobel
     # Output dtype = cv2.CV_64F. Then take its absolute and convert to cv2.CV_8U
-    sobelx64f = cv2.Sobel(img_cropped, cv2.CV_64F, 1, 1, ksize=3)
+    sobelx64f = cv2.Sobel(img_out, cv2.CV_64F, 1, 1, ksize=3)
     abs_sobel64f = np.absolute(sobelx64f)
     sobel_8u = np.uint8(abs_sobel64f)
-    img_bin = cv2.cvtColor(sobel_8u, cv2.COLOR_BGR2GRAY)
-    cv2.imshow("Sobel Filter", img_bin)
-    image, contours, hierarchy = cv2.findContours(img_bin, 1, 2)
-    i = 0
-    max_area = 0
-    idx = 0
-    for cnt in contours:
-        M = cv2.moments(cnt)
-        area = cv2.contourArea(cnt)
-        if area > max_area:
-            max_area = area
-            idx = i
-        i = i + 1
+    img_out = cv2.cvtColor(sobel_8u, cv2.COLOR_BGR2GRAY)
+    cv2.imshow("Sobel Filter", img_out)
 
-    print("Max area:" + str(max_area))
-    stencil = np.zeros(image.shape).astype(image.dtype)
-    cv2.fillConvexPoly(stencil, contours[idx], 255)
-    img_bin = cv2.bitwise_and(img_bin, stencil)
-    cv2.imshow("Remove Contour", img_bin)
-elif PRE == pre[1]:  # otsu
-    img_greyscale = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2GRAY)
-    cv2.imshow("Greyscale", img_greyscale)
-    ret, img_bin = cv2.threshold(img_greyscale, 220, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
-    cv2.imshow("Binary", img_bin)
-    image, contours, hierarchy = cv2.findContours(img_bin, 1, 2)
-    i = 0
-    max_area = 0
-    idx = 0
-    for cnt in contours:
-        M = cv2.moments(cnt)
-        area = cv2.contourArea(cnt)
-        if area > max_area:
-            max_area = area
-            idx = i
-        i = i + 1
+if pre[2] in PRE:  # otsu
+    img_greyscale = cv2.cvtColor(img_out, cv2.COLOR_BGR2GRAY)
+    ret, img_out = cv2.threshold(img_greyscale, 220, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    cv2.imshow("Binary", img_out)
 
-    print("Max area:" + str(max_area))
-    stencil = np.ones(image.shape).astype(image.dtype) * 255
-    cv2.fillConvexPoly(stencil, contours[idx], 0)
-    img_bin = cv2.bitwise_and(img_bin, stencil)
-    cv2.imshow("Remove Contour", img_bin)
-else:
-    img_bin = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2GRAY)
+if pre[3] in PRE:
+    img_out = extract_contours(img_out)
+    cv2.imshow("Remove Contour", img_out)
+
+if pre[4] in PRE:
+    img_out = cv2.cvtColor(img_out, cv2.COLOR_BGR2GRAY)
+    cv2.imshow("Gray Scale", img_out)
+
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
 
 angle = 361
 if MODE == modes[0]:  # projection
-    angle = projection(img_bin)
+    angle = projection(img_out)
 elif MODE == modes[1]:  # hough
-    angle = hough(img_bin)
+    angle = hough(img_out)
 
 if angle >= 0:
     print("Inclinação de %d° no sentido horário" % angle)
