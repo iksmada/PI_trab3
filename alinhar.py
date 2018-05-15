@@ -14,7 +14,7 @@ def projection(img):
         rotated = imutils.rotate_bound(img, -theta)
         hists.append(np.sum(rotated, 1))
 
-    max = 0
+    max = -1
     theta = -91
     i = -90
     for hist in hists:
@@ -72,8 +72,8 @@ img_orig = cv2.imread(INPUT)
 cv2.imshow("Original", img_orig)
 img_greyscale = cv2.cvtColor(img_orig, cv2.COLOR_BGR2GRAY)
 cv2.imshow("Greyscale", img_greyscale)
-ret, img_bin = cv2.threshold(img_greyscale, thresh=220, maxval=1, type=cv2.THRESH_BINARY_INV)
-cv2.imshow("Binary", img_bin*255)
+ret, img_bin = cv2.threshold(img_greyscale, 220, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+cv2.imshow("Binary", img_bin)
 cv2.waitKey(10000)
 cv2.destroyAllWindows()
 
