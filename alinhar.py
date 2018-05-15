@@ -2,6 +2,11 @@ import argparse
 import cv2
 import imutils
 import numpy as np
+
+try:
+    import Image
+except ImportError:
+    from PIL import Image
 import pytesseract
 
 
@@ -75,7 +80,7 @@ def extract_contours(img):
             stencil0 = np.zeros(img.shape).astype(img.dtype)
             cv2.fillConvexPoly(stencil0, cnt, 255)
             img_ret = cv2.bitwise_and(img_ret, stencil0)
-        elif area > 1000:
+        elif area > 2000:
             stencil255 = np.ones(img.shape).astype(img.dtype) * 255
             cv2.fillConvexPoly(stencil255, cnt, 0)
             img_ret = cv2.bitwise_and(img_ret, stencil255)
@@ -106,6 +111,10 @@ if OUTPUT and not OUTPUT.endswith(".png"):
 img_orig = cv2.imread(INPUT)
 cv2.imshow("Original", img_orig)
 
+text = pytesseract.image_to_string(img_orig)
+print("Texto antes da rotação:")
+print(text)
+
 img_out = img_orig
 
 if pre[0] in PRE and (img_orig.shape[0] > CROP or img_orig.shape[1] > CROP):
@@ -116,22 +125,18 @@ if pre[1] in PRE:  # sobel
     # Output dtype = cv2.CV_64F. Then take its absolute and convert to cv2.CV_8U
     sobelx64f = cv2.Sobel(img_out, cv2.CV_64F, 1, 1, ksize=3)
     abs_sobel64f = np.absolute(sobelx64f)
-    sobel_8u = np.uint8(abs_sobel64f)
-    img_out = cv2.cvtColor(sobel_8u, cv2.COLOR_BGR2GRAY)
+    img_out = np.uint8(abs_sobel64f)
     cv2.imshow("Sobel Filter", img_out)
 
+img_out = cv2.cvtColor(img_out, cv2.COLOR_BGR2GRAY)
+
 if pre[2] in PRE:  # otsu
-    img_greyscale = cv2.cvtColor(img_out, cv2.COLOR_BGR2GRAY)
-    ret, img_out = cv2.threshold(img_greyscale, 220, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    ret, img_out = cv2.threshold(img_out, 220, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
     cv2.imshow("Binary", img_out)
 
 if pre[3] in PRE:
     img_out = extract_contours(img_out)
     cv2.imshow("Remove Contour", img_out)
-
-if pre[4] in PRE:
-    img_out = cv2.cvtColor(img_out, cv2.COLOR_BGR2GRAY)
-    cv2.imshow("Gray Scale", img_out)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
@@ -149,6 +154,11 @@ else:
     print("Inclinação de %d° no sentido anti-horário" % (-angle))
 rotated = imutils.rotate(img_orig, angle)
 cv2.imshow("Rotated", rotated)
+
+text = pytesseract.image_to_string(rotated)
+print("Texto apos da rotação:")
+print(text)
+
 if OUTPUT:
     cv2.imwrite(OUTPUT, rotated)
 cv2.waitKey(0)
