@@ -11,7 +11,7 @@ def func_objetivo_projection(hist):
 def projection(img):
     hists = []
     for theta in np.arange(-90, 90, 1):
-        rotated = imutils.rotate_bound(img, theta)
+        rotated = imutils.rotate_bound(img, -theta)
         hists.append(np.sum(rotated, 1))
 
     max = 0
@@ -29,21 +29,27 @@ def projection(img):
 
 def hough_transform(x, y):
     points = []
-    for theta in range(180):
-        points.append((int(x*np.cos(theta) + y*np.sin(theta)), theta))
+    for theta in np.arange(-90, 90, 1):
+        points.append((int(x*np.cos(np.radians(theta)) + y*np.sin(np.radians(theta)) + 0.5), theta))
     return points
 
 
+def func_objetivo_hough(accumulator):
+    rows, cols = np.where(accumulator == accumulator.max())
+    return cols[0]
+
+
 def hough(img):
-    accumulator = np.zeros((int(img.shape[0]*1.415 + img.shape[1]*1.415), 180), int)
+    accumulator = np.zeros((int(img.shape[0]*1.415 + img.shape[1]*1.415 + 0.5), 180), int)
     for y in range(img.shape[0]):
         for x in range(img.shape[1]):
             if img[y, x] > 0:
                 for point in hough_transform(x, y):
                     accumulator[point] = accumulator[point] + 1
 
+    angle = func_objetivo_hough(accumulator) - 90
 
-    return 0
+    return angle
 
 
 modes = ("projection", "hough")
@@ -79,10 +85,10 @@ elif MODE == modes[1]:  # hough
     angle = hough(img_bin)
 
 if angle >= 0:
-    print("Inclinação de %d° no sentido anti-horário" % angle)
+    print("Inclinação de %d° no sentido horário" % angle)
 else:
-    print("Inclinação de %d° no sentido horário" % (-angle))
-rotated = imutils.rotate(img_greyscale, -angle)
+    print("Inclinação de %d° no sentido anti-horário" % (-angle))
+rotated = imutils.rotate(img_greyscale, angle)
 cv2.imshow("Rotated", rotated)
 if OUTPUT:
     cv2.imwrite(OUTPUT, rotated)
