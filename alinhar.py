@@ -55,7 +55,7 @@ def hough(img):
     accumulator = np.zeros((int(img.shape[0]*1.415 + img.shape[1]*1.415 + 0.5), 180), int)
     for y in range(img.shape[0]):
         for x in range(img.shape[1]):
-            if img[y, x] > 0:
+            if img[y, x] > 10:
                 for point in hough_transform(x, y):
                     accumulator[point] = accumulator[point] + 1
 
@@ -65,14 +65,14 @@ def hough(img):
 
 
 modes = ("projection", "hough")
+pre = ("sobel", "otsu", "none")
 parser = argparse.ArgumentParser(description='Fix tilted images')
 parser.add_argument('-i', '--input', type=str, help='input image', required=True)
 parser.add_argument('-o', '--output', type=str, help='Output image name')
 parser.add_argument('-m', '--mode', type=str, help='Technique for alignment algorithm',
                     default='projection', choices=modes)
-group = parser.add_mutually_exclusive_group()
-group.add_argument('--sobel', help='Use sobel filter', action='store_true')
-group.add_argument('--otsu', help='Use Otsu binarization', action='store_true')
+parser.add_argument('-p', '--pre', type=str, help='Technique for preprocessing',
+                    default='none', choices=pre)
 parser.add_argument('-c', '--crop', type=int, help='Crop image')
 
 args = vars(parser.parse_args())
@@ -80,8 +80,7 @@ print(args)
 INPUT = args["input"]
 OUTPUT = args["output"]
 MODE = args["mode"]
-SOBEL = args["sobel"]
-OTSU = args["otsu"]
+PRE = args["pre"]
 CROP = args["crop"]
 
 if OUTPUT and not OUTPUT.endswith(".png"):
@@ -96,14 +95,14 @@ if CROP and (img_orig.shape[0] > CROP or img_orig.shape[1] > CROP):
 else:
     img_cropped = img_orig
 
-if SOBEL:
+if PRE == pre[0]:  # sobel
     # Output dtype = cv2.CV_64F. Then take its absolute and convert to cv2.CV_8U
-    sobelx64f = cv2.Sobel(img_cropped, cv2.CV_64F, 1, 1, ksize=5)
+    sobelx64f = cv2.Sobel(img_cropped, cv2.CV_64F, 1, 1, ksize=3)
     abs_sobel64f = np.absolute(sobelx64f)
     sobel_8u = np.uint8(abs_sobel64f)
     img_bin = cv2.cvtColor(sobel_8u, cv2.COLOR_BGR2GRAY)
     cv2.imshow("Sobel Filter", img_bin)
-elif OTSU:
+elif PRE == pre[1]:  # otsu
     img_greyscale = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2GRAY)
     cv2.imshow("Greyscale", img_greyscale)
     ret, img_bin = cv2.threshold(img_greyscale, 220, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
