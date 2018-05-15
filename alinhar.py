@@ -73,6 +73,7 @@ parser.add_argument('-m', '--mode', type=str, help='Technique for alignment algo
 group = parser.add_mutually_exclusive_group()
 group.add_argument('--sobel', help='Use sobel filter', action='store_true')
 group.add_argument('--otsu', help='Use Otsu binarization', action='store_true')
+parser.add_argument('-c', '--crop', type=int, help='Crop image')
 
 args = vars(parser.parse_args())
 print(args)
@@ -81,17 +82,20 @@ OUTPUT = args["output"]
 MODE = args["mode"]
 SOBEL = args["sobel"]
 OTSU = args["otsu"]
+CROP = args["crop"]
 
 if OUTPUT and not OUTPUT.endswith(".png"):
     OUTPUT = OUTPUT + ".png"
 
 img_orig = cv2.imread(INPUT)
 cv2.imshow("Original", img_orig)
-if img_orig.shape[0] > 500 or img_orig.shape[1] > 500:
-    img_cropped = centered_crop(img_orig, 500, 500)
+
+if CROP and (img_orig.shape[0] > CROP or img_orig.shape[1] > CROP):
+        img_cropped = centered_crop(img_orig, CROP, CROP)
+        cv2.imshow("Cropped", img_cropped)
 else:
     img_cropped = img_orig
-cv2.imshow("Cropped", img_cropped)
+
 if SOBEL:
     # Output dtype = cv2.CV_64F. Then take its absolute and convert to cv2.CV_8U
     sobelx64f = cv2.Sobel(img_cropped, cv2.CV_64F, 1, 1, ksize=5)
@@ -101,12 +105,12 @@ if SOBEL:
     cv2.imshow("Sobel Filter", img_bin)
 elif OTSU:
     img_greyscale = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2GRAY)
-    cv2.imshow("Greyscale And Cropped", img_greyscale)
+    cv2.imshow("Greyscale", img_greyscale)
     ret, img_bin = cv2.threshold(img_greyscale, 220, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
     cv2.imshow("Binary", img_bin)
 else:
     img_bin = img_cropped
-cv2.waitKey(10000)
+cv2.waitKey(20000)
 cv2.destroyAllWindows()
 
 
