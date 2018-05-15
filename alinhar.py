@@ -102,14 +102,48 @@ if PRE == pre[0]:  # sobel
     sobel_8u = np.uint8(abs_sobel64f)
     img_bin = cv2.cvtColor(sobel_8u, cv2.COLOR_BGR2GRAY)
     cv2.imshow("Sobel Filter", img_bin)
+    image, contours, hierarchy = cv2.findContours(img_bin, 1, 2)
+    i = 0
+    max_area = 0
+    idx = 0
+    for cnt in contours:
+        M = cv2.moments(cnt)
+        area = cv2.contourArea(cnt)
+        if area > max_area:
+            max_area = area
+            idx = i
+        i = i + 1
+
+    print("Max area:" + str(max_area))
+    stencil = np.zeros(image.shape).astype(image.dtype)
+    cv2.fillConvexPoly(stencil, contours[idx], 255)
+    img_bin = cv2.bitwise_and(img_bin, stencil)
+    cv2.imshow("Remove Contour", img_bin)
 elif PRE == pre[1]:  # otsu
     img_greyscale = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2GRAY)
     cv2.imshow("Greyscale", img_greyscale)
     ret, img_bin = cv2.threshold(img_greyscale, 220, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
     cv2.imshow("Binary", img_bin)
+    image, contours, hierarchy = cv2.findContours(img_bin, 1, 2)
+    i = 0
+    max_area = 0
+    idx = 0
+    for cnt in contours:
+        M = cv2.moments(cnt)
+        area = cv2.contourArea(cnt)
+        if area > max_area:
+            max_area = area
+            idx = i
+        i = i + 1
+
+    print("Max area:" + str(max_area))
+    stencil = np.ones(image.shape).astype(image.dtype) * 255
+    cv2.fillConvexPoly(stencil, contours[idx], 0)
+    img_bin = cv2.bitwise_and(img_bin, stencil)
+    cv2.imshow("Remove Contour", img_bin)
 else:
-    img_bin = img_cropped
-cv2.waitKey(20000)
+    img_bin = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2GRAY)
+cv2.waitKey(0)
 cv2.destroyAllWindows()
 
 
