@@ -4,6 +4,18 @@ import imutils
 import numpy as np
 
 
+def centered_crop(img, new_height, new_width):
+    width = np.size(img, 1)
+    height = np.size(img, 0)
+
+    left = (width - new_width) // 2
+    top = (height - new_height) // 2
+    right = (width + new_width) // 2
+    bottom = (height + new_height) // 2
+    c_img = img[top:bottom, left:right, :]
+    return c_img
+
+
 def func_objetivo_projection(hist):
     return max(hist)
 
@@ -70,8 +82,10 @@ if OUTPUT and not OUTPUT.endswith(".png"):
 
 img_orig = cv2.imread(INPUT)
 cv2.imshow("Original", img_orig)
-img_greyscale = cv2.cvtColor(img_orig, cv2.COLOR_BGR2GRAY)
-cv2.imshow("Greyscale", img_greyscale)
+if img_orig.shape[0] > 500 or img_orig.shape[1] > 500:
+    img_cropped = centered_crop(img_orig, 500, 500)
+img_greyscale = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2GRAY)
+cv2.imshow("Greyscale And Cropped", img_greyscale)
 ret, img_bin = cv2.threshold(img_greyscale, 220, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
 cv2.imshow("Binary", img_bin)
 cv2.waitKey(10000)
@@ -88,7 +102,7 @@ if angle >= 0:
     print("Inclinação de %d° no sentido horário" % angle)
 else:
     print("Inclinação de %d° no sentido anti-horário" % (-angle))
-rotated = imutils.rotate(img_greyscale, angle)
+rotated = imutils.rotate(img_orig, angle)
 cv2.imshow("Rotated", rotated)
 if OUTPUT:
     cv2.imwrite(OUTPUT, rotated)
