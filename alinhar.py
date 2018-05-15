@@ -84,6 +84,8 @@ img_orig = cv2.imread(INPUT)
 cv2.imshow("Original", img_orig)
 if img_orig.shape[0] > 500 or img_orig.shape[1] > 500:
     img_cropped = centered_crop(img_orig, 500, 500)
+else:
+    img_cropped = img_orig
 img_greyscale = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2GRAY)
 cv2.imshow("Greyscale And Cropped", img_greyscale)
 ret, img_bin = cv2.threshold(img_greyscale, 220, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
