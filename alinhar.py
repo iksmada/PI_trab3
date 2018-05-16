@@ -64,7 +64,8 @@ def hough(img):
             if img[y, x] > 10:
                 for point in hough_transform(x, y):
                     accumulator[point] = accumulator[point] + 1
-
+    # plt.matshow(accumulator[:400,:])
+    # plt.show()
     angle = func_objetivo_hough(accumulator) - 90
 
     return angle
@@ -91,8 +92,8 @@ def extract_contours(img):
 modes = ("projection", "hough")
 pre = ("crop", "sobel", "otsu", "contours", "gray")
 parser = argparse.ArgumentParser(description='Fix tilted images')
-parser.add_argument('-i', '--input', type=str, help='input image', required=True)
-parser.add_argument('-o', '--output', type=str, help='Output image name')
+parser.add_argument('-i', '--input', type=str, help='Input image path', required=True)
+parser.add_argument('-o', '--output', type=str, help='Output image path')
 parser.add_argument('-m', '--mode', type=str, help='Technique for alignment algorithm',
                     default='projection', choices=modes)
 parser.add_argument('-p', '--pre', type=str, help='Technique for preprocessing',default='gray', choices=pre, nargs="*")
@@ -148,16 +149,18 @@ if MODE == modes[0]:  # projection
 elif MODE == modes[1]:  # hough
     angle = hough(img_out)
 
-if angle >= 0:
-    print("Inclinação de %d° no sentido horário" % angle)
-else:
-    print("Inclinação de %d° no sentido anti-horário" % (-angle))
 rotated = imutils.rotate(img_orig, angle)
 cv2.imshow("Rotated", rotated)
 
 text = pytesseract.image_to_string(rotated)
 print("Texto apos da rotação:")
 print(text)
+
+if angle >= 0:
+    print("Inclinação de %d° no sentido horário" % angle)
+else:
+    print("Inclinação de %d° no sentido anti-horário" % (-angle))
+
 
 if OUTPUT:
     cv2.imwrite(OUTPUT, rotated)
