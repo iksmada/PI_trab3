@@ -47,7 +47,7 @@ def projection(img):
 
 def hough_transform(x, y):
     points = []
-    for theta in np.arange(-90, 90, 1):
+    for theta in np.arange(0, 180, 1):
         points.append((int(x*np.cos(np.radians(theta)) + y*np.sin(np.radians(theta)) + 0.5), theta))
     return points
 
@@ -139,7 +139,7 @@ if pre[3] in PRE:
     img_out = extract_contours(img_out)
     cv2.imshow("Remove Contour", img_out)
 
-cv2.waitKey(0)
+cv2.waitKey(20000)
 cv2.destroyAllWindows()
 
 
